@@ -1,5 +1,6 @@
 -- UILibrary.lua: A modern UI library for Roblox exploits
--- Step 8: Integrate sliders in the Settings tab with draggable handles and tooltips
+-- Step 9: Integrate input fields in the Tools tab with placeholder text and focus animations
+-- Fix: Ensure correct tab content naming to prevent "MainContent is not a valid member of Frame"
 
 local UILibrary = {}
 local Players = game:GetService("Players")
@@ -34,6 +35,8 @@ local config = {
     sliderColorLight = Color3.fromRGB(180, 180, 180), -- Slider background in light mode
     sliderHandleColorDark = Color3.fromRGB(200, 200, 200), -- Slider handle in dark mode
     sliderHandleColorLight = Color3.fromRGB(50, 50, 50), -- Slider handle in light mode
+    inputColorDark = Color3.fromRGB(50, 50, 50), -- Input field background in dark mode
+    inputColorLight = Color3.fromRGB(200, 200, 200), -- Input field background in light mode
 }
 
 -- Create the main UI
@@ -224,7 +227,7 @@ function UILibrary:Init()
         toggleLabel.Font = Enum.Font.SourceSans
         toggleLabel.TextSize = 18
         toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
-        toggleLabel.Parent = toggleFrame
+        toggleLabel.Parent = tdoggleFrame
         
         -- Create toggle button
         local toggleButton = Instance.new("TextButton")
@@ -531,6 +534,76 @@ function UILibrary:Init()
         return sliderFrame
     end
     
+    -- Function to create an input field
+    local function createInput(parent, label, placeholder, onSubmit)
+        local inputFrame = Instance.new("Frame")
+        inputFrame.Name = label .. "Input"
+        inputFrame.Size = UDim2.new(0, 200, 0, 40)
+        inputFrame.BackgroundTransparency = 1
+        inputFrame.Parent = parent
+        
+        -- Add label
+        local inputLabel = Instance.new("TextLabel")
+        inputLabel.Name = "Label"
+        inputLabel.Size = UDim2.new(0, 140, 0, 20)
+        inputLabel.Position = UDim2.new(0, 0, 0, 0)
+        inputLabel.BackgroundTransparency = 1
+        inputLabel.Text = label
+        inputLabel.TextColor3 = config.darkMode and config.textColorDark or config.textColorLight
+        inputLabel.Font = Enum.Font.SourceSans
+        inputLabel.TextSize = 18
+        inputLabel.TextXAlignment = Enum.TextXAlignment.Left
+        inputLabel.Parent = inputFrame
+        
+        -- Create input box
+        local inputBox = Instance.new("TextBox")
+        inputBox.Name = "InputBox"
+        inputBox.Size = UDim2.new(0, 180, 0, 30)
+        inputBox.Position = UDim2.new(0, 10, 0, 20)
+        inputBox.BackgroundColor3 = config.darkMode and config.inputColorDark or config.inputColorLight
+        inputBox.TextColor3 = config.darkMode and config.textColorDark or config.textColorLight
+        inputBox.PlaceholderText = placeholder
+        inputBox.PlaceholderColor3 = config.darkMode and Color3.fromRGB(150, 150, 150) or Color3.fromRGB(100, 100, 100)
+        inputBox.Font = Enum.Font.SourceSans
+        inputBox.TextSize = 16
+        inputBox.TextXAlignment = Enum.TextXAlignment.Left
+        inputBox.ClearTextOnFocus = false
+        inputBox.Parent = inputFrame
+        
+        local inputCorner = Instance.new("UICorner")
+        inputCorner.CornerRadius = UDim.new(0, 6)
+        inputCorner.Parent = inputBox
+        
+        -- Focus animation
+        inputBox.Focused:Connect(function()
+            local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            local focusGoal = { Size = UDim2.new(0, 185, 0, 32) }
+            local focusTween = TweenService:Create(inputBox, tweenInfo, focusGoal)
+            focusTween:Play()
+        end)
+        
+        inputBox.FocusLost:Connect(function(enterPressed)
+            local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            local defaultGoal = { Size = UDim2.new(0, 180, 0, 30) }
+            local defaultTween = TweenService:Create(inputBox, tweenInfo, defaultGoal)
+            defaultTween:Play()
+            
+            if enterPressed and onSubmit then
+                local text = inputBox.Text
+                if text ~= "" then
+                    onSubmit(text)
+                else
+                    inputBox.Text = ""
+                    inputBox.PlaceholderText = "Invalid input!"
+                    task.wait(1)
+                    inputBox.PlaceholderText = placeholder
+                end
+            end
+        end)
+        
+        return inputFrame
+    end
+    
     -- Function to create a card
     local function createCard(parent, title, description)
         local card = Instance.new("Frame")
@@ -658,55 +731,63 @@ function UILibrary:Init()
         
         -- Add toggles and sliders to Settings tab
         if name == "Settings" then
-            local toggleContainer = Instance.new("Frame")
-            toggleContainer.Name = "ToggleContainer"
-            toggleContainer.Size = UDim2.new(1, 0, 1, -20)
-            toggleContainer.Position = UDim2.new(0, 0, 0, 20)
-            toggleContainer.BackgroundTransparency = 1
-            toggleContainer.Parent = tabContent
+            local settingsContainer = Instance.new("Frame")
+            settingsContainer.Name = "SettingsContainer"
+            settingsContainer.Size = UDim2.new(1, 0, 1, -20)
+            settingsContainer.Position = UDim2.new(0, 0, 0, 20)
+            settingsContainer.BackgroundTransparency = 1
+            settingsContainer.Parent = tabContent
             
             local uiListLayout = Instance.new("UIListLayout")
             uiListLayout.FillDirection = Enum.FillDirection.Vertical
             uiListLayout.Padding = UDim.new(0, 10)
-            uiListLayout.Parent = toggleContainer
+            uiListLayout.Parent = settingsContainer
             
             -- Create sample toggles
-            createToggle(toggleContainer, "Enable Exploits", true, function(state)
+            createToggle(settingsContainer, "Enable Exploits", true, function(state)
                 print("Exploits Enabled: " .. tostring(state))
             end)
-            createToggle(toggleContainer, "Auto-Update", false, function(state)
+            createToggle(settingsContainer, "Auto-Update", false, function(state)
                 print("Auto-Update Enabled: " .. tostring(state))
             end)
             
             -- Create sample sliders
-            createSlider(toggleContainer, "Speed Boost", 0, 100, 50, function(value)
+            createSlider(settingsContainer, "Speed Boost", 0, 100, 50, function(value)
                 print("Speed Boost: " .. tostring(value))
             end)
-            createSlider(toggleContainer, "Opacity", 0, 1, 0.5, function(value)
+            createSlider(settingsContainer, "Opacity", 0, 1, 0.5, function(value)
                 print("Opacity: " .. tostring(value))
             end)
         end
         
-        -- Add dropdowns to Tools tab
+        -- Add dropdowns and input fields to Tools tab
         if name == "Tools" then
-            local dropdownContainer = Instance.new("Frame")
-            dropdownContainer.Name = "DropdownContainer"
-            dropdownContainer.Size = UDim2.new(1, 0, 1, -20)
-            dropdownContainer.Position = UDim2.new(0, 0, 0, 20)
-            dropdownContainer.BackgroundTransparency = 1
-            dropdownContainer.Parent = tabContent
+            local toolsContainer = Instance.new("Frame")
+            toolsContainer.Name = "ToolsContainer"
+            toolsContainer.Size = UDim2.new(1, 0, 1, -20)
+            toolsContainer.Position = UDim2.new(0, 0, 0, 20)
+            toolsContainer.BackgroundTransparency = 1
+            toolsContainer.Parent = tabContent
             
             local uiListLayout = Instance.new("UIListLayout")
             uiListLayout.FillDirection = Enum.FillDirection.Vertical
             uiListLayout.Padding = UDim.new(0, 10)
-            uiListLayout.Parent = dropdownContainer
+            uiListLayout.Parent = toolsContainer
             
             -- Create sample dropdowns
-            createDropdown(dropdownContainer, "Tool Type", {"Speed Hack", "Fly Hack", "Noclip"}, "Speed Hack", function(option)
+            createDropdown(toolsContainer, "Tool Type", {"Speed Hack", "Fly Hack", "Noclip"}, "Speed Hack", function(option)
                 print("Selected Tool: " .. option)
             end)
-            createDropdown(dropdownContainer, "Environment", {"Client", "Server", "Both"}, "Client", function(option)
+            createDropdown(toolsContainer, "Environment", {"Client", "Server", "Both"}, "Client", function(option)
                 print("Selected Environment: " .. option)
+            end)
+            
+            -- Create sample input fields
+            createInput(toolsContainer, "Command", "Enter command...", function(text)
+                print("Command Submitted: " .. text)
+            end)
+            createInput(toolsContainer, "Player ID", "Enter player ID...", function(text)
+                print("Player ID Submitted: " .. text)
             end)
         end
         
@@ -715,7 +796,10 @@ function UILibrary:Init()
             if activeTab ~= tabButton then
                 if activeTab then
                     activeTab.BackgroundTransparency = 0
-                    activeTab.Parent[activeTab.Name:gsub("Tab", "Content")].Visible = false
+                    local previousContent = contentArea[activeTab.Name:gsub("Tab", "Content")]
+                    if previousContent then
+                        previousContent.Visible = false
+                    end
                 end
                 tabButton.BackgroundTransparency = 0.5
                 tabContent.Visible = true
@@ -739,9 +823,14 @@ function UILibrary:Init()
     createTab("Tools")
     
     -- Set default active tab
-    tabs[1].BackgroundTransparency = 0.5
-    contentArea[tabs[1].Name:gsub("Tab", "Content")].Visible = true
-    activeTab = tabs[1]
+    if tabs[1] then
+        tabs[1].BackgroundTransparency = 0.5
+        local defaultContent = contentArea[tabs[1].Name:gsub("Tab", "Content")]
+        if defaultContent then
+            defaultContent.Visible = true
+        end
+        activeTab = tabs[1]
+    end
     
     -- Create theme toggle button
     local toggleButton = Instance.new("TextButton")
@@ -803,6 +892,11 @@ function UILibrary:Init()
         local sliderHandleGoals = {
             BackgroundColor3 = config.darkMode and config.sliderHandleColorDark or config.sliderHandleColorLight
         }
+        local inputGoals = {
+            BackgroundColor3 = config.darkMode and config.inputColorDark or config.inputColorLight,
+            TextColor3 = config.darkMode and config.textColorDark or config.textColorLight,
+            PlaceholderColor3 = config.darkMode and Color3.fromRGB(150, 150, 150) or Color3.fromRGB(100, 100, 100)
+        }
         
         local mainFrameTween = TweenService:Create(mainFrame, tweenInfo, mainFrameGoals)
         mainFrameTween:Play()
@@ -811,78 +905,100 @@ function UILibrary:Init()
             local tabTween = TweenService:Create(tab, tweenInfo, tabGoals)
             tabTween:Play()
             local contentFrame = contentArea[tab.Name:gsub("Tab", "Content")]
-            local separator = contentFrame.Separator
-            local separatorTween = TweenService:Create(separator, tweenInfo, separatorGoals)
-            separatorTween:Play()
-            
-            -- Update cards in Main tab
-            if tab.Name == "MainTab" then
-                local cardContainer = contentFrame.CardContainer
-                for _, card in ipairs(cardContainer:GetChildren()) do
-                    if card:IsA("Frame") then
-                        local cardTween = TweenService:Create(card, tweenInfo, { BackgroundColor3 = cardGoals.BackgroundColor3 })
-                        cardTween:Play()
-                        for _, child in ipairs(card:GetChildren()) do
-                            if child:IsA("TextLabel") or child:IsA("TextButton") then
-                                local textTween = TweenService:Create(child, tweenInfo, { TextColor3 = cardGoals.TextColor3 })
-                                textTween:Play()
-                                if child:IsA("TextButton") then
-                                    local buttonTween = TweenService:Create(child, tweenInfo, { BackgroundColor3 = buttonGoals.BackgroundColor3 })
-                                    buttonTween:Play()
+            if contentFrame then
+                local separator = contentFrame.Separator
+                local separatorTween = TweenService:Create(separator, tweenInfo, separatorGoals)
+                separatorTween:Play()
+                
+                -- Update cards in Main tab
+                if tab.Name == "MainTab" then
+                    local cardContainer = contentFrame.CardContainer
+                    if cardContainer then
+                        for _, card in ipairs(cardContainer:GetChildren()) do
+                            if card:IsA("Frame") then
+                                local cardTween = TweenService:Create(card, tweenInfo, { BackgroundColor3 = cardGoals.BackgroundColor3 })
+                                cardTween:Play()
+                                for _, child in ipairs(card:GetChildren()) do
+                                    if child:IsA("TextLabel") or child:IsA("TextButton") then
+                                        local textTween = TweenService:Create(child, tweenInfo, { TextColor3 = cardGoals.TextColor3 })
+                                        textTween:Play()
+                                        if child:IsA("TextButton") then
+                                            local buttonTween = TweenService:Create(child, tweenInfo, { BackgroundColor3 = buttonGoals.BackgroundColor3 })
+                                            buttonTween:Play()
+                                        end
+                                    end
                                 end
                             end
                         end
                     end
                 end
-            end
-            
-            -- Update toggles and sliders in Settings tab
-            if tab.Name == "SettingsTab" then
-                local toggleContainer = contentFrame.ToggleContainer
-                for _, toggleFrame in ipairs(toggleContainer:GetChildren()) do
-                    if toggleFrame:IsA("Frame") then
-                        for _, child in ipairs(toggleFrame:GetChildren()) do
-                            if child:IsA("TextLabel") then
-                                local labelTween = TweenService:Create(child, tweenInfo, { TextColor3 = cardGoals.TextColor3 })
-                                labelTween:Play()
-                            elseif child:IsA("TextButton") then
-                                local toggleTween = TweenService:Create(child, tweenInfo, { BackgroundColor3 = toggleGoals.BackgroundColor3 })
-                                toggleTween:Play()
-                                local knob = child.Knob
-                                local knobTween = TweenService:Create(knob, tweenInfo, { BackgroundColor3 = toggleKnobGoals.BackgroundColor3 })
-                                knobTween:Play()
-                            elseif child:IsA("Frame") and child.Name:find("Slider") then
-                                local track = child.Track
-                                local handle = track.Handle
-                                local tooltip = child.Tooltip
-                                local trackTween = TweenService:Create(track, tweenInfo, { BackgroundColor3 = sliderGoals.BackgroundColor3 })
-                                local handleTween = TweenService:Create(handle, tweenInfo, { BackgroundColor3 = sliderHandleGoals.BackgroundColor3 })
-                                local tooltipTween = TweenService:Create(tooltip, tweenInfo, { BackgroundColor3 = dropdownGoals.BackgroundColor3, TextColor3 = dropdownGoals.TextColor3 })
-                                trackTween:Play()
-                                handleTween:Play()
-                                tooltipTween:Play()
+                
+                -- Update toggles and sliders in Settings tab
+                if tab.Name == "SettingsTab" then
+                    local settingsContainer = contentFrame.SettingsContainer
+                    if settingsContainer then
+                        for _, settingsFrame in ipairs(settingsContainer:GetChildren()) do
+                            if settingsFrame:IsA("Frame") then
+                                for _, child in ipairs(settingsFrame:GetChildren()) do
+                                    if child:IsA("TextLabel") then
+                                        local labelTween = TweenService:Create(child, tweenInfo, { TextColor3 = cardGoals.TextColor3 })
+                                        labelTween:Play()
+                                    elseif child:IsA("TextButton") then
+                                        local toggleTween = TweenService:Create(child, tweenInfo, { BackgroundColor3 = toggleGoals.BackgroundColor3 })
+                                        toggleTween:Play()
+                                        local knob = child.Knob
+                                        if knob then
+                                            local knobTween = TweenService:Create(knob, tweenInfo, { BackgroundColor3 = toggleKnobGoals.BackgroundColor3 })
+                                            knobTween:Play()
+                                        end
+                                    elseif child:IsA("Frame") and child.Name:find("Slider") then
+                                        local track = child.Track
+                                        local handle = track and track.Handle
+                                        local tooltip = child.Tooltip
+                                        if track then
+                                            local trackTween = TweenService:Create(track, tweenInfo, { BackgroundColor3 = sliderGoals.BackgroundColor3 })
+                                            trackTween:Play()
+                                        end
+                                        if handle then
+                                            local handleTween = TweenService:Create(handle, tweenInfo, { BackgroundColor3 = sliderHandleGoals.BackgroundColor3 })
+                                            handleTween:Play()
+                                        end
+                                        if tooltip then
+                                            local tooltipTween = TweenService:Create(tooltip, tweenInfo, { BackgroundColor3 = dropdownGoals.BackgroundColor3, TextColor3 = dropdownGoals.TextColor3 })
+                                            tooltipTween:Play()
+                                        end
+                                    end
+                                end
                             end
                         end
                     end
                 end
-            end
-            
-            -- Update dropdowns in Tools tab
-            if tab.Name == "ToolsTab" then
-                local dropdownContainer = contentFrame.DropdownContainer
-                for _, dropdownFrame in ipairs(dropdownContainer:GetChildren()) do
-                    if dropdownFrame:IsA("Frame") then
-                        for _, child in ipairs(dropdownFrame:GetChildren()) do
-                            if child:IsA("TextButton") then
-                                local buttonTween = TweenService:Create(child, tweenInfo, dropdownGoals)
-                                buttonTween:Play()
-                            elseif child:IsA("Frame") then
-                                local menuTween = TweenService:Create(child, tweenInfo, { BackgroundColor3 = dropdownGoals.BackgroundColor3 })
-                                menuTween:Play()
-                                for _, option in ipairs(child:GetChildren()) do
-                                    if option:IsA("TextButton") then
-                                        local optionTween = TweenService:Create(option, tweenInfo, dropdownGoals)
-                                        optionTween:Play()
+                
+                -- Update dropdowns and input fields in Tools tab
+                if tab.Name == "ToolsTab" then
+                    local toolsContainer = contentFrame.ToolsContainer
+                    if toolsContainer then
+                        for _, toolsFrame in ipairs(toolsContainer:GetChildren()) do
+                            if toolsFrame:IsA("Frame") then
+                                for _, child in ipairs(toolsFrame:GetChildren()) do
+                                    if child:IsA("TextButton") then
+                                        local buttonTween = TweenService:Create(child, tweenInfo, dropdownGoals)
+                                        buttonTween:Play()
+                                    elseif child:IsA("TextBox") then
+                                        local inputTween = TweenService:Create(child, tweenInfo, inputGoals)
+                                        inputTween:Play()
+                                    elseif child:IsA("TextLabel") then
+                                        local labelTween = TweenService:Create(child, tweenInfo, { TextColor3 = cardGoals.TextColor3 })
+                                        labelTween:Play()
+                                    elseif child:IsA("Frame") then
+                                        local menuTween = TweenService:Create(child, tweenInfo, { BackgroundColor3 = dropdownGoals.BackgroundColor3 })
+                                        menuTween:Play()
+                                        for _, option in ipairs(child:GetChildren()) do
+                                            if option:IsA("TextButton") then
+                                                local optionTween = TweenService:Create(option, tweenInfo, dropdownGoals)
+                                                optionTween:Play()
+                                            end
+                                        end
                                     end
                                 end
                             end
